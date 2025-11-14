@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name='api-url' content='http://localhost:3001/api/calculate'>
+  <title>Carbon Emission Estimator | Breathe Green</title>
+  <link rel="stylesheet" href="carbon_calculator.css" />
+  <!-- Chart.js library for creating charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo"> <span>Breathe Green</span></div>
+    <ul class="nav-links">
+      <li><a href="nav_bar.html">Home</a></li>
+      <li><a href="eco_liberary.html">Eco Library</a></li>
+        <li><a href="carbon_calculator.ht ml">Carbon Emission Calculator</a></li>
+
+    </ul>
+  </nav>
+
+
+  <section class="form-section">
+    <h1>Carbon Emission Estimator</h1>
+    <p style="text-align:center;">Select who you want to calculate for:</p>
+
+
+    <div class="choice-buttons">
+      <button id="individualBtn"> Individual</button>
+      <button id="familyBtn"> Family</button>
+    </div>
+
+
+    <form id="individualForm" class="vertical-form" style="display:none;">
+      <h2>Individual Data</h2>
+
+      <label>Travel Mode:</label>
+      <select id="travelMode">
+        <option value="car">Car</option>
+        <option value="ev">EV</option>
+        <option value="bus">Bus</option>
+        <option value="train">Train</option>
+        <option value="scooter">Scooter</option>
+        <option value="walk">Walk</option>
+        <option value="cycle">Cycle</option>
+      </select>
+
+      <label>Distance Travelled (km/month):</label>
+      <input type="number" id="travelKm" required>
+
+      <label>Diet Type:</label>
+      <select id="diet">
+        <option value="veg">Vegetarian</option>
+        <option value="mixed">Mixed</option>
+        <option value="meat">Non-Vegetarian</option>
+      </select>
+
+      <label>Electricity Usage (kWh/month):</label>
+      <input type="number" id="kWh" required>
+
+      <label>Waste Produced (kg/month):</label>
+      <input type="number" id="waste" required>
+
+      <button type="button" id="calcIndividual">Send Data</button>
+    </form>
+
+
+    <form id="familyForm" class="vertical-form" style="display:none;">
+      <h2>Family Data</h2>
+
+      <label>Total Family Members:</label>
+      <input type="number" id="familyMembers" required>
+
+      <label>Number of Vehicles:</label>
+      <input type="number" id="vehicles" required>
+
+      <label>Vehicle Type:</label>
+      <select id="vehicleType">
+        <option value="petrol">Petrol</option>
+        <option value="ev">EV</option>
+        <option value="diesel">diesel</option>
+      </select>
+
+      <label>Average Travel per Month (km per vehicle):</label>
+      <input type="number" id="familyTravelKm" required>
+
+      <label>Electricity Usage (kWh/month):</label>
+      <input type="number" id="familyKwh" required>
+
+      <label>Waste Produced (kg/month):</label>
+      <input type="number" id="familyWaste" required>
+
+      <label>Average Diet Type:</label>
+      <select id="familyDiet">
+        <option value="veg">Vegetarian</option>
+        <option value="mixed">Mixed</option>
+        <option value="meat">Non-Vegetarian</option>
+      </select>
+
+      <button type="button" id="calcFamily">Send Data</button>
+    </form>
+
+    <div id="result" style="margin-top:30px; text-align:center;"></div>
+    
+    <!-- Chart 1: Gas Breakdown -->
+    <div id="gasChartSection" class="chart-container" style="display:none;">
+      <h3>🌫️ Greenhouse Gas Breakdown</h3>
+      <canvas id="gasChart"></canvas>
+    </div>
+    
+    <!-- Chart 2: Comparison with Global Average -->
+    <div id="comparisonChartSection" class="chart-container" style="display:none;">
+      <h3>🌍 Your Emissions vs Global Average</h3>
+      <canvas id="comparisonChart"></canvas>
+    </div>
+    
+    <!-- Chart 3: Reduction Potential -->
+    <div id="reductionChartSection" class="chart-container" style="display:none;">
+      <h3>📉 Monthly Reduction Potential</h3>
+      <canvas id="reductionChart"></canvas>
+    </div>
+    
+    <div id="suggestions" style="display:none;"></div>
+  </section>
+
+  <script>
+
+    const individualBtn = document.getElementById("individualBtn");
+    const familyBtn = document.getElementById("familyBtn");
+    const individualForm = document.getElementById("individualForm");
+    const familyForm = document.getElementById("familyForm");
+    const resultDiv = document.getElementById("result");
+
+    individualBtn.addEventListener("click", () => {
+      individualForm.style.display = "flex";
+      familyForm.style.display = "none";
+      resultDiv.innerHTML = "";
+    });
+
+    familyBtn.addEventListener("click", () => {
+      familyForm.style.display = "flex";
+      individualForm.style.display = "none";
+      resultDiv.innerHTML = "";
+    });
+
+
+    const API_URL = "http://localhost:3001/api/calculate";
+
+
+    document.getElementById("calcIndividual").addEventListener("click", async () => {
+      const payload = {
+        type: "individual",
+        travelMode: document.getElementById("travelMode").value,
+        travelKm: document.getElementById("travelKm").value,
+        diet: document.getElementById("diet").value,
+        kWh: document.getElementById("kWh").value,
+        waste: document.getElementById("waste").value,
+      };
+
+      resultDiv.innerHTML = "⏳ Calculating your carbon footprint...";
+      resultDiv.style.display = "block";
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const apiData = await res.json();
+        
+        if (apiData.success) {
+          resultDiv.innerHTML = `
+            <h3>✅ Your Carbon Footprint</h3>
+            <p style="font-size:2rem; font-weight:bold; color:#118a3f;">
+              ${apiData.data.totalEmissions} kg CO2e/month
+            </p>
+          `;
+          
+          // Show all charts and suggestions
+          showAllCharts(apiData.data);
+          showSuggestions(payload, apiData.data);
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">❌ Failed to reach backend API. Make sure server is running!</p>`;
+      }
+    });
+
+  
+    document.getElementById("calcFamily").addEventListener("click", async () => {
+      const payload = {
+        type: "family",
+        members: document.getElementById("familyMembers").value,
+        vehicles: document.getElementById("vehicles").value,
+        vehicleType: document.getElementById("vehicleType").value,
+        familyTravelKm: document.getElementById("familyTravelKm").value,
+        kWh: document.getElementById("familyKwh").value,
+        waste: document.getElementById("familyWaste").value,
+        diet: document.getElementById("familyDiet").value,
+      };
+
+      resultDiv.innerHTML = "⏳ Calculating your carbon footprint...";
+      resultDiv.style.display = "block";
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const apiData = await res.json();
+        
+        if (apiData.success) {
+          resultDiv.innerHTML = `
+            <h3>✅ Your Carbon Footprint</h3>
+            <p style="font-size:2rem; font-weight:bold; color:#118a3f;">
+              ${apiData.data.totalEmissions} kg CO2e/month
+            </p>
+          `;
+          
+          // Show all charts and suggestions
+          showAllCharts(apiData.data);
+          showSuggestions(payload, apiData.data);
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">❌ Failed to reach backend API. Make sure server is running!</p>`;
+      }
+    });
+
+    // Variables to store chart instances
+    let gasChart = null;
+    let comparisonChart = null;
+    let reductionChart = null;
+
+    // Function to show all three charts
+    function showAllCharts(apiData) {
+      showGasChart(apiData.gasBreakdown);
+      showComparisonChart(apiData.comparison);
+      showReductionChart(apiData.reduction);
+    }
+
+    // Chart 1: Gas Breakdown (Pie Chart)
+    function showGasChart(gasData) {
+      document.getElementById("gasChartSection").style.display = "block";
+      
+      if (gasChart) gasChart.destroy();
+      
+      const ctx = document.getElementById("gasChart").getContext("2d");
+      gasChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels: ["CO2", "CH4 (Methane)", "N2O (Nitrous Oxide)"],
+          datasets: [{
+            data: [gasData.co2, gasData.ch4, gasData.n2o],
+            backgroundColor: ["#ff6b6b", "#ffa94d", "#74c0fc"],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.label + ": " + context.parsed + " kg/month";
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Comparison with Global Average (Bar Chart)
+    function showComparisonChart(compData) {
+      document.getElementById("comparisonChartSection").style.display = "block";
+      
+      if (comparisonChart) comparisonChart.destroy();
+      
+      const ctx = document.getElementById("comparisonChart").getContext("2d");
+      comparisonChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Your Emissions", "Global Average"],
+          datasets: [{
+            label: "kg CO2e/month",
+            data: [compData.yourEmissions, compData.globalAverage],
+            backgroundColor: [
+              compData.yourEmissions > compData.globalAverage ? "#ff6b6b" : "#51cf66",
+              "#94d2bd"
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "kg CO2e per month" }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(context) {
+                  if (context.dataIndex === 0) {
+                    return "Difference: " + compData.difference + " kg (" + compData.percentDiff + "%)";
+                  }
+                  return "";
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 3: Reduction Potential (Bar Chart)
+    function showReductionChart(redData) {
+      document.getElementById("reductionChartSection").style.display = "block";
+      
+      if (reductionChart) reductionChart.destroy();
+      
+      const ctx = document.getElementById("reductionChart").getContext("2d");
+      reductionChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Current Emissions", "After Following Suggestions"],
+          datasets: [{
+            label: "kg CO2e/month",
+            data: [redData.current, redData.afterReduction],
+            backgroundColor: ["#ff6b6b", "#51cf66"],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "kg CO2e per month" }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(context) {
+                  if (context.dataIndex === 1) {
+                    return "Reduction: " + redData.potential + " kg (" + redData.percentReduction + "%)";
+                  }
+                  return "";
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Function to show personalized suggestions
+    function showSuggestions(data, apiData) {
+      const suggestionsDiv = document.getElementById("suggestions");
+      let suggestions = "<h3>💡 Personalized Suggestions to Reduce Carbon Emissions:</h3><ul>";
+
+      // Check travel mode and give suggestions
+      if (data.travelMode === "car") {
+        suggestions += "<li>🚗 <strong>Switch to Public Transport:</strong> Use bus or train instead of car to reduce emissions by up to 50%.</li>";
+        suggestions += "<li>🚴 <strong>Try Cycling or Walking:</strong> For short distances, cycling or walking produces zero emissions.</li>";
+        suggestions += "<li>⚡ <strong>Consider an Electric Vehicle:</strong> EVs produce much less carbon than petrol cars.</li>";
+      }
+
+      if (data.travelMode === "scooter") {
+        suggestions += "<li>🛴 <strong>Use Public Transport:</strong> Buses and trains are more eco-friendly for longer distances.</li>";
+        suggestions += "<li>🚴 <strong>Switch to Cycling:</strong> For nearby places, cycling is healthier and emission-free.</li>";
+      }
+
+      if (data.vehicleType === "petrol" || data.vehicleType === "diesel") {
+        suggestions += "<li>⚡ <strong>Upgrade to Electric Vehicle:</strong> EVs have lower carbon footprint than petrol/diesel vehicles.</li>";
+        suggestions += "<li>🚌 <strong>Carpool or Use Public Transport:</strong> Share rides to reduce the number of vehicles on road.</li>";
+      }
+
+      // Check electricity usage and give suggestions
+      if (data.kWh > 200 || data.familyKwh > 500) {
+        suggestions += "<li>💡 <strong>Use LED Bulbs:</strong> Replace old bulbs with LED to save up to 75% energy.</li>";
+        suggestions += "<li>🌞 <strong>Install Solar Panels:</strong> Generate clean energy and reduce electricity bills.</li>";
+        suggestions += "<li>❄️ <strong>Use Energy-Efficient Appliances:</strong> Choose 5-star rated appliances to consume less power.</li>";
+        suggestions += "<li>🔌 <strong>Unplug Devices:</strong> Turn off devices when not in use to avoid standby power consumption.</li>";
+      }
+
+      // Check diet and give suggestions
+      if (data.diet === "meat") {
+        suggestions += "<li>🥗 <strong>Reduce Meat Consumption:</strong> Eating less meat can reduce your carbon footprint significantly.</li>";
+        suggestions += "<li>🌱 <strong>Try Plant-Based Meals:</strong> Include more vegetables and plant-based proteins in your diet.</li>";
+      }
+
+      if (data.diet === "mixed") {
+        suggestions += "<li>🥗 <strong>Eat More Vegetables:</strong> Increase plant-based meals to lower your carbon impact.</li>";
+      }
+
+      // Check waste and give suggestions
+      if (data.waste > 20 || data.familyWaste > 50) {
+        suggestions += "<li>♻️ <strong>Recycle More:</strong> Separate plastic, paper, and glass for recycling.</li>";
+        suggestions += "<li>🗑️ <strong>Reduce Single-Use Plastics:</strong> Use reusable bags, bottles, and containers.</li>";
+        suggestions += "<li>🍂 <strong>Compost Organic Waste:</strong> Turn food scraps into compost instead of throwing them away.</li>";
+      }
+
+      suggestions += "</ul>";
+      
+      // Add summary info
+      if (apiData && apiData.reduction) {
+        suggestions += `<div style="margin-top:20px; padding:15px; background:#e7f5ff; border-radius:8px;">
+          <p style="font-size:1.1rem; font-weight:600; color:#1971c2;">
+            💰 By following these suggestions, you can reduce your carbon footprint by 
+            <strong>${apiData.reduction.potential} kg CO2e/month</strong> 
+            (${apiData.reduction.percentReduction}% reduction)!
+          </p>
+        </div>`;
+      }
+      
+      // Show the suggestions on the page
+      suggestionsDiv.innerHTML = suggestions;
+      suggestionsDiv.style.display = "block";
+    }
+  </script>
+</body>
+</html>
