@@ -4,25 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name='api-url' content='http://localhost:3001/api/calculate'>
-  <title>Carbon Emission Estimator | Breathe Green</title>
+  <title>Carbon Emission Calculator | BreatheGreen</title>
   <link rel="stylesheet" href="carbon_calculator.css" />
   <!-- Chart.js library for creating charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <nav class="navbar">
-    <div class="logo"> <span>Breathe Green</span></div>
+    <div class="logo"> <span>BreatheGreen</span></div>
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
       <li><a href="eco_library.html">Eco Library</a></li>
-        <li><a href="carbon_calculator.ht ml">Carbon Emission Calculator</a></li>
-
+      <li><a href="carbon_calculator.html">Carbon Emission Calculator</a></li>
     </ul>
   </nav>
 
 
   <section class="form-section">
-    <h1>Carbon Emission Estimator</h1>
+    <h1>BreatheGreen</h1>
+    <p class="tagline" style="text-align:center; font-style:italic; color:#0d6c34; margin-bottom:10px;">Make every choice a little lighter.</p>
     <p style="text-align:center;">Select who you want to calculate for:</p>
 
 
@@ -103,6 +103,32 @@
 
     <div id="result" style="margin-top:30px; text-align:center;"></div>
     
+    <!-- What If? Machine Section -->
+    <div id="whatIfSection" class="what-if-section" style="display:none;">
+      <h3>🔥 "What If?" Machine</h3>
+      <p>See how much CO₂ you'd save with better choices:</p>
+      <div id="whatIfComparisons"></div>
+    </div>
+    
+    <!-- Context Engine Section -->
+    <div id="contextSection" class="context-section" style="display:none;">
+      <h3>🔥 Context Engine</h3>
+      <div id="contextInsights"></div>
+    </div>
+    
+    <!-- Add to Week Button -->
+    <div id="addToWeekSection" style="display:none; text-align:center; margin:20px 0;">
+      <button id="addToWeekBtn" class="add-to-week-btn">📅 Add to my week</button>
+    </div>
+    
+    <!-- Weekly Tracker Section -->
+    <div id="weeklyTrackerSection" class="weekly-tracker-section" style="display:none;">
+      <h3>📊 Weekly Tracker</h3>
+      <p>Your carbon footprint over the last 7 days:</p>
+      <canvas id="weeklyChart"></canvas>
+      <div id="weeklyStats"></div>
+    </div>
+    
     <!-- Chart 1: Gas Breakdown -->
     <div id="gasChartSection" class="chart-container" style="display:none;">
       <h3>🌫️ Greenhouse Gas Breakdown</h3>
@@ -177,9 +203,21 @@
             </p>
           `;
           
-          // Show all charts and suggestions
+          // Show all features
           showAllCharts(apiData.data);
+          showWhatIfMachine(payload, apiData.data);
+          showContextEngine(apiData.data);
           showSuggestions(payload, apiData.data);
+          
+          // Show Add to Week button
+          document.getElementById("addToWeekSection").style.display = "block";
+          
+          // Store current result for Add to Week
+          window.currentResult = {
+            date: new Date().toISOString(),
+            emissions: apiData.data.totalEmissions,
+            payload: payload
+          };
         }
       } catch (err) {
         resultDiv.innerHTML = `<p style="color:red;">❌ Failed to reach backend API. Make sure server is running!</p>`;
@@ -218,9 +256,21 @@
             </p>
           `;
           
-          // Show all charts and suggestions
+          // Show all features
           showAllCharts(apiData.data);
+          showWhatIfMachine(payload, apiData.data);
+          showContextEngine(apiData.data);
           showSuggestions(payload, apiData.data);
+          
+          // Show Add to Week button
+          document.getElementById("addToWeekSection").style.display = "block";
+          
+          // Store current result for Add to Week
+          window.currentResult = {
+            date: new Date().toISOString(),
+            emissions: apiData.data.totalEmissions,
+            payload: payload
+          };
         }
       } catch (err) {
         resultDiv.innerHTML = `<p style="color:red;">❌ Failed to reach backend API. Make sure server is running!</p>`;
@@ -231,6 +281,7 @@
     let gasChart = null;
     let comparisonChart = null;
     let reductionChart = null;
+    let weeklyChart = null;
 
     // Function to show all three charts
     function showAllCharts(apiData) {
@@ -425,6 +476,211 @@
       suggestionsDiv.innerHTML = suggestions;
       suggestionsDiv.style.display = "block";
     }
+    
+    // What If? Machine - Show comparisons with alternative choices
+    async function showWhatIfMachine(data, apiData) {
+      const whatIfSection = document.getElementById("whatIfSection");
+      const comparisonsDiv = document.getElementById("whatIfComparisons");
+      
+      if (!data.travelMode && !data.vehicleType) {
+        whatIfSection.style.display = "none";
+        return;
+      }
+      
+      const currentKm = parseFloat(data.travelKm || data.familyTravelKm || 0);
+      if (currentKm === 0) {
+        whatIfSection.style.display = "none";
+        return;
+      }
+      
+      const currentEmissions = apiData.categoryBreakdown.travel;
+      let comparisons = "";
+      
+      // Calculate alternative emissions
+      const alternatives = [
+        { mode: "bus", label: "🚌 Bus", factor: 0.5 },
+        { mode: "train", label: "🚂 Train", factor: 0.3 },
+        { mode: "ev", label: "⚡ Electric Vehicle", factor: 0.4 },
+        { mode: "cycle", label: "🚴 Cycle/Walk", factor: 0 }
+      ];
+      
+      comparisons = "<div class='what-if-grid'>";
+      
+      for (const alt of alternatives) {
+        const altEmissions = currentEmissions * alt.factor;
+        const savings = currentEmissions - altEmissions;
+        const savingsPercent = currentEmissions > 0 ? ((savings / currentEmissions) * 100).toFixed(1) : 0;
+        
+        comparisons += `
+          <div class="what-if-card">
+            <h4>${alt.label}</h4>
+            <p class="emission-value">${altEmissions.toFixed(2)} kg CO₂/month</p>
+            <p class="savings">💚 Save ${savings.toFixed(2)} kg (${savingsPercent}%)</p>
+          </div>
+        `;
+      }
+      
+      comparisons += "</div>";
+      comparisonsDiv.innerHTML = comparisons;
+      whatIfSection.style.display = "block";
+    }
+    
+    // Context Engine - Compare with India's average and UN 2030 targets
+    function showContextEngine(apiData) {
+      const contextSection = document.getElementById("contextSection");
+      const insightsDiv = document.getElementById("contextInsights");
+      
+      const monthlyEmissions = apiData.totalEmissions;
+      const yearlyEmissions = monthlyEmissions * 12;
+      
+      // India's average yearly emissions per person: ~4.2 tons = 4200 kg
+      const indiaAverage = 4200; // kg per year
+      const indiaPercent = ((yearlyEmissions / indiaAverage) * 100).toFixed(1);
+      
+      // UN 2030 target: ~2.5 tons = 2500 kg per person per year
+      const unTarget = 2500; // kg per year
+      const unPercent = ((yearlyEmissions / unTarget) * 100).toFixed(1);
+      const overUnTarget = yearlyEmissions > unTarget;
+      
+      let insights = `
+        <div class="context-card">
+          <h4>🇮🇳 India's Yearly Average</h4>
+          <p class="context-value">${indiaAverage} kg CO₂/year per person</p>
+          <p class="context-comparison">Your yearly footprint: <strong>${yearlyEmissions.toFixed(1)} kg</strong></p>
+          <p class="context-percent">That's <strong>${indiaPercent}%</strong> of India's average</p>
+        </div>
+        <div class="context-card ${overUnTarget ? 'over-target' : 'under-target'}">
+          <h4>🌍 UN 2030 Per-Person Target</h4>
+          <p class="context-value">${unTarget} kg CO₂/year per person</p>
+          <p class="context-comparison">Your yearly footprint: <strong>${yearlyEmissions.toFixed(1)} kg</strong></p>
+          <p class="context-percent">
+            ${overUnTarget 
+              ? `⚠️ You're <strong>${unPercent}%</strong> over the UN target!` 
+              : `✅ You're <strong>${(100 - parseFloat(unPercent)).toFixed(1)}%</strong> under the UN target!`}
+          </p>
+          ${overUnTarget 
+            ? `<p class="context-note">💡 To meet UN 2030 goals, reduce by ${(yearlyEmissions - unTarget).toFixed(1)} kg/year</p>`
+            : `<p class="context-note">🎉 Great job! You're on track for UN 2030 goals!</p>`}
+        </div>
+      `;
+      
+      insightsDiv.innerHTML = insights;
+      contextSection.style.display = "block";
+    }
+    
+    // Weekly Tracker Functions
+    function saveActivity(activity) {
+      let activities = loadActivities();
+      activities.push(activity);
+      // Keep only last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      activities = activities.filter(a => new Date(a.date) >= sevenDaysAgo);
+      localStorage.setItem("breathegreen_activities", JSON.stringify(activities));
+      loadWeeklyTracker();
+    }
+    
+    function loadActivities() {
+      const stored = localStorage.getItem("breathegreen_activities");
+      return stored ? JSON.parse(stored) : [];
+    }
+    
+    function loadWeeklyTracker() {
+      const activities = loadActivities();
+      const weeklySection = document.getElementById("weeklyTrackerSection");
+      
+      if (activities.length === 0) {
+        weeklySection.style.display = "none";
+        return;
+      }
+      
+      // Sort by date
+      activities.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      // Get last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentActivities = activities.filter(a => new Date(a.date) >= sevenDaysAgo);
+      
+      if (recentActivities.length === 0) {
+        weeklySection.style.display = "none";
+        return;
+      }
+      
+      // Prepare chart data
+      const labels = recentActivities.map(a => {
+        const date = new Date(a.date);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      const emissions = recentActivities.map(a => a.emissions);
+      const totalWeekly = emissions.reduce((sum, val) => sum + val, 0);
+      
+      // Update stats
+      document.getElementById("weeklyStats").innerHTML = `
+        <div class="weekly-stats">
+          <div class="stat-item">
+            <strong>Total Weekly Emissions:</strong> ${totalWeekly.toFixed(2)} kg CO₂
+          </div>
+          <div class="stat-item">
+            <strong>Average Daily:</strong> ${(totalWeekly / recentActivities.length).toFixed(2)} kg CO₂
+          </div>
+        </div>
+      `;
+      
+      // Draw chart
+      if (weeklyChart) weeklyChart.destroy();
+      const ctx = document.getElementById("weeklyChart").getContext("2d");
+      weeklyChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Daily Emissions (kg CO₂)",
+            data: emissions,
+            backgroundColor: "#118a3f",
+            borderColor: "#0d6c34",
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "kg CO₂" }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+      
+      weeklySection.style.display = "block";
+    }
+    
+    // Initialize Weekly Tracker and Add to Week button handler on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      // Load weekly tracker
+      loadWeeklyTracker();
+      
+      // Add to Week button handler
+      const addToWeekBtn = document.getElementById("addToWeekBtn");
+      if (addToWeekBtn) {
+        addToWeekBtn.addEventListener("click", () => {
+          if (window.currentResult) {
+            saveActivity(window.currentResult);
+            alert("✅ Added to your weekly tracker!");
+            addToWeekBtn.textContent = "✓ Added to my week";
+            addToWeekBtn.disabled = true;
+            setTimeout(() => {
+              addToWeekBtn.textContent = "📅 Add to my week";
+              addToWeekBtn.disabled = false;
+            }, 2000);
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

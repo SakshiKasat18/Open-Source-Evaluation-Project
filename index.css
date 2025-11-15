@@ -96,6 +96,14 @@ body {
   animation: fadeIn 1.5s ease;
 }
 
+.hero .tagline {
+  font-size: 1.4rem;
+  font-style: italic;
+  color: #0d6c34;
+  margin: 10px 0 20px 0;
+  font-weight: 500;
+}
+
 
 .stats {
   display: grid;
