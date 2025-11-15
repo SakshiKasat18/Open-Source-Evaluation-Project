@@ -171,7 +171,12 @@
     });
 
 
-    const API_URL = "http://localhost:3001/api/calculate";
+    // Use relative URL for deployment (works for both local and Vercel)
+    // For local development with server.js, use: "http://localhost:3001/api/calculate"
+    // For Vercel deployment, use: "/api/calculate"
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? "http://localhost:3001/api/calculate"
+      : "/api/calculate";
 
 
     document.getElementById("calcIndividual").addEventListener("click", async () => {

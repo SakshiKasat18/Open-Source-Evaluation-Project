@@ -34,7 +34,7 @@ Track your carbon footprint over time:
 - Node.js (v14 or higher)
 - A Climatiq API key (FREE) from https://www.climatiq.io/
 
-### Installation
+### Local Development
 
 1. **Clone the repository**
    ```bash
@@ -66,6 +66,16 @@ Track your carbon footprint over time:
 6. **Open the application**
    - Open `carbon_calculator.html` in your browser
    - Or use a local server: `python -m http.server 8000` and visit `http://localhost:8000/carbon_calculator.html`
+
+### Deploy to Vercel
+
+**Quick Deploy:**
+1. Push your code to GitHub
+2. Import project at [vercel.com/new](https://vercel.com/new)
+3. Add environment variable: `CLIMATIQ_API_KEY`
+4. Deploy!
+
+**For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## 📱 How to Use
 

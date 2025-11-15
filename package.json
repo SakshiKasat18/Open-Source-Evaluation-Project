@@ -1,19 +1,23 @@
 {
-  "name": "carbon-calculator-backend",
+  "name": "breathegreen",
   "version": "1.0.0",
-  "description": "Backend API for Carbon Emission Calculator",
+  "description": "BreatheGreen - Make every choice a little lighter. A carbon footprint decision tool.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test-api": "node test-api.js"
+    "test-api": "node test-api.js",
+    "dev": "node server.js"
   },
-  "keywords": ["carbon", "calculator", "api"],
-  "author": "",
+  "keywords": ["carbon", "calculator", "api", "climate", "sustainability", "breathegreen"],
+  "author": "Team 60",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "axios": "^1.6.0",
     "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=14.x"
   }
 }
