@@ -154,9 +154,6 @@ Track your carbon footprint over time:
 - Shubham
 - Guthal
 
-## 📝 License
-
-ISC
 
 ## 🔗 Links
 
